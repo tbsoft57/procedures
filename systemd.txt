@@ -1,0 +1,2 @@
+sudo systemctl enable <name>
+sudo service <name> start restart stop

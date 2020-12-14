@@ -1,0 +1,13 @@
+sudo nano /etc/network/interfaces
+auto lo enp0s31f6
+iface lo inet loopback
+iface enp0s31f6 inet static
+        address 192.168.1.100
+        netmask 255.255.255.0
+        gateway 192.168.1.1
+        dns-nameservers 89.2.0.1, 89.2.0.2
+
+sudo ifconfig enp0s31f6 down
+sudo ifconfig enp0s31f6 up
+vider /tmp
+sudo dhclient enp0s31f6
