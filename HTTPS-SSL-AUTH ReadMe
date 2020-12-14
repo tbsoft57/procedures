@@ -1,0 +1,168 @@
+--------------------------------------------------------------------------------------------------------------------------------------
+Zone DNS de OVH:
+
+A 	record ou address record (également appelé enregistrement d’hôte) qui fait correspondre un nom d'hôte ou un nom de domaine ou un sous-domaine à une adresse IPv4 de 32 bits distribués sur quatre octets ex: 123.234.1.2 ;
+AAAA 	record ou IPv6 address record qui fait correspondre un nom d'hôte à une adresse IPv6 de 128 bits distribués sur seize octets ;
+CNAME 	record ou canonical name record qui permet de faire d'un domaine un alias vers un autre. Cet alias hérite de tous les sous-domaines de l'original ;
+MX 	record ou mail exchange record qui définit les serveurs de courriel pour ce domaine ;
+PTR 	record ou pointer record qui associe une adresse IP à un enregistrement de nom de domaine, aussi dit « reverse » puisqu'il fait exactement le contraire du A record ;
+NS 	record ou name server record qui définit les serveurs DNS de ce domaine ;
+SOA 	record ou Start Of Authority record qui donne les informations générales de la zone : serveur principal, courriel de contact, différentes durées dont celle d'expiration, numéro de série de la zone ;
+SRV 	record qui généralise la notion de MX record, mais qui propose aussi des fonctionnalités avancées comme le taux de répartition de charge pour un service donné, standardisé dans la RFC 278225 ;
+NAPTR 	record ou Name Authority Pointer record qui donne accès à des règles de réécriture de l'information, permettant des correspondances assez lâches entre un nom de domaine et une ressource. Il est spécifié dans la RFC 340326 ;
+TXT 	record permet à un administrateur d'insérer un texte quelconque dans un enregistrement DNS (par exemple, cet enregistrement est utilisé pour implémenter la spécification Sender Policy Framework) ;
+
+--------------------------------------------------------------------------------------------------------------------------------------
+Configuration serveur Apache en frontal faisant office de routeur VirtualHost vers les applications:
+
+sites-available: (example cmras.conf)
+
+<VirtualHost 164.132.106.69:80>
+  ServerName <domain>.fr -> Cette directive spécifie le nom d'hôte qui doit apparaître dans l'en-tête de la requête (parametre Host) pour pouvoir atteindre ce serveur virtuel.
+  Redirect / https://<domain>.fr/ -> Toutes les requettes sont reorientées vers le VirtualHost sécurisé HTTPS ci-dessous.
+</VirtualHost>
+
+<VirtualHost 164.132.106.69:443>
+   ServerName <domain>.fr -> Cette directive spécifie le nom d'hôte qui doit apparaître dans l'en-tête de la requête (parametre Host) pour pouvoir atteindre ce serveur virtuel.
+
+   SSLEngine on	-> Cette directive permet d'activer/désactiver le moteur du protocole SSL/TLS. Elle doit être utilisée dans une section <VirtualHost> pour activer SSL/TLS pour ce serveur virtuel particulier. Par défaut, le moteur du protocole SSL/TLS est désactivé pour le serveur principal et tous les serveurs virtuels configurés.
+ 
+   SSLVerifyDepth 1 -> Cette directive permet de spécifier la profondeur maximale à laquelle mod_ssl va effectuer sa vérification avant de décider que le client ne possède pas de certificat valide
+
+   SSLVerifyClient optional_no_ca 
+	-> Cette directive permet de définir le niveau de vérification du certificat pour l'authentification du client:
+		none: aucun certificat client n'est requis
+		optional: le client peut présenter un certificat valide
+		require: le client doit présenter un certificat valide
+		optional_no_ca: le client peut présenter un certificat valide, mais il n'est pas nécessaire que ce dernier soit vérifiable (avec succès). Cette option ne peut pas être utilisée lors de l'authentification du client.
+ 
+   SSLCACertificateFile /etc/apache2/ssl/ca.crt 
+	-> Cette directive permet de définir le fichier tout-en-un où vous pouvez rassembler les certificats des Autorités de Certification (CAs) pour les clients auxquels vous avez à faire. 
+	   On les utilise pour l'authentification des clients. Un tel fichier contient la simple concaténation des différents fichiers de certificats codés en PEM, par ordre de préférence.
+	   Cette directive est en lien avec les 2 directives précédentes.
+	   Pour la création des certificats, voir la section "Pour creer les certificats SSL" ci-dessous.
+
+   SSLCertificateFile /etc/letsencrypt/live/<domain>.fr/fullchain.pem
+	-> Cette directive permet de définir le fichier de données contenant les informations de certificat X.509 du serveur pour faire de l'HTTPS
+	   Pour la création des certificats et KeyFile, voir la section "Pour creer les certificats HTTPS" ci-dessous.
+
+   SSLCertificateKeyFile /etc/letsencrypt/live/<domain>.fr/privkey.pem
+	-> Cette directive permet de définir le fichier contenant la clé privée du serveur pour faire de l'HTTPS
+	   Pour la création des certificats et KeyFile, voir la section "Pour creer les certificats HTTPS" ci-dessous.
+
+   ProxyPass / http://localhost:4203/
+	-> Cette directive permet de référencer des serveurs distants depuis l'espace d'URLs du serveur local.
+	   En général, la directive ProxyRequests doit être définie à off lorsqu'on utilise la directive ProxyPass
+
+   ----------------------------------------------------------------------------------------------------------------------------------
+   Les 2 directives suivantes ne sont necessaire que pour la methode de renouvellement de certificat certbot --webroot
+   --> webroot pose parfois des problèmes -> vaut mieux utiliser certbot --standalone
+
+   ProxyPass /.well-known/acme-challenge !
+	-> pour stoper la redirection des requettes ciblant /.well-known/acme-challenge car cette cible est pris en charge par un Alias (voir ci-dessous).
+
+   Alias /.well-known/acme-challenge /data/www/default/jenkinsLetsEncrypt/.well-known/acme-challenge
+	-> La directive Alias permet de stocker des documents dans des zones du système de fichiers situées en dehors de l'arborescence du site web DocumentRoot. 
+	   Les URLs dont le chemin commence par chemin URL seront mises en correspondance avec des fichiers locaux dont le chemin commence par chemin répertoire. 
+	   Le chemin URL est sensible à la casse, même sur les systèmes de fichiers insensibles à la casse.
+	   Utilisé ici pour permettre à certbot de renouveler les certificats en placent à cet endroit un fichier qui pourra etre lu via internet en HTTP ou HTTPS.
+
+   ----------------------------------------------------------------------------------------------------------------------------------
+   ProxyRequests Off
+	-> Cette directive permet d'activer/désactiver la fonctionnalité de serveur mandataire direct d'Apache httpd. 
+           Définir ProxyRequests à Off n'interdit pas l'utilisation de la directive ProxyPass.
+	   Pour une configuration typique de mandataire inverse ou passerelle, cette directive doit être définie à Off.
+
+   ProxyPreserveHost On
+	-> Lorsqu'elle est activée, cette directive va transmettre l'en-tête Host de la requête entrante vers le serveur mandaté, au lieu du nom d'hôte spécifié par la directive ProxyPass.
+
+   ProxyPassReverse / http://localhost:4203/
+	-> Cette directive permet de faire en sorte qu'Apache httpd ajuste l'URL dans les en-têtes Location, Content-Location et URI des réponses de redirection HTTP. Ceci est essentiel lorsqu'Apache httpd est utilisé en tant que mandataire inverse (ou passerelle), afin d'éviter de court-circuiter le mandataire inverse suite aux redirections HTTP sur le serveur d'arrière-plan qui restent derrière le mandataire inverse.
+           Seuls les en-têtes de réponse HTTP spécialement mentionnés ci-dessus seront réécrits. Apache httpd ne réécrira ni les autres en-têtes de réponse, ni par défaut les références d'URLs dans les pages HTML. Cela signifie que dans le cas où un contenu mandaté contient des références à des URLs absolues, elles court-circuiteront le mandataire. Pour réécrire un contenu HTML afin qu'il corresponde au mandataire, vous devez charger et activer le module mod_proxy_html.
+	   Supposons par exemple que le serveur local a pour adresse http://example.com/, alors
+
+		ProxyPass         "/mirror/foo/" "http://backend.example.com/"
+		ProxyPassReverse  "/mirror/foo/" "http://backend.example.com/"
+		ProxyPassReverseCookieDomain  "backend.example.com" "public.example.com"
+		ProxyPassReverseCookiePath  "/"  "/mirror/foo/"
+
+	   ne va pas seulement provoquer la conversion interne d'une requête locale pour http://example.com/mirror/foo/bar en une requête mandatée pour http://backend.example.com/bar (la fonctionnalité fournie par ProxyPass). Il va aussi s'occuper des redirections que le serveur backend.example.com envoie lorsqu'il redirige http://backend.example.com/bar vers http://backend.example.com/quux. Apache httpd corrige ceci en http://example.com/mirror/foo/quux avant de faire suivre la redirection HTTP au client
+
+   RequestHeader set SSL_CLIENT_S_DN_CN "%{SSL_CLIENT_S_DN_CN}s"
+	-> Permet d'inserer dans la requette transmise à l'application cible un Header SSL_CLIENT_S_DN_CN renseigné avec le nom stocké dans le certificat d'authentification transmis par le browser
+
+   RequestHeader set SSL_CLIENT_S_DN_Email "%{SSL_CLIENT_S_DN_Email}s"
+	-> Permet d'inserer dans la requette transmise à l'application cible un Header SSL_CLIENT_S_DN_Email renseigné avec l'email stocké dans le certificat d'authentification transmis par le browser
+
+   ErrorLog "/var/log/apache2/appLogs/cmras.error.log"
+	-> indique le fichier de log d'erreur de l'application cible. 
+	   Une entrée sur ce log n'est émise que en cas d'erreur lors d'une requette.
+
+   #CustomLog "/var/log/apache2/appLogs/cmras.access.log" "%t : %{SSL_CLIENT_S_DN_CN}x  : \%r\ : %>s : %b"
+	-> indique le fichier de log d'acces de l'application cible. 
+	   Une entrée sur ce log est émise pour chaque requette.
+	   Ici on a spécifié un format pour l'entrée dans le log. 
+	   Ce format précise l'inscription du nom du propriétaire du certificat d'authentification transmit par le browser.
+
+</VirtualHost>
+
+--------------------------------------------------------------------------------------------------------------------------------------
+Pour creer les certificats HTTPS:
+
+utiliser certbot(LetsEncrypt):
+
+Pour obtenir un certificat sans arreter Apache (necessite des redirections /.well-known/acme-challenge dans VirtualHost):
+Attention: un fichier .conf est créé dans /etc/letsencrypt/renewal pour les renouvellements futurs 
+=> ecrasement de l'ancien fichier si présent avec la nouvelle methode --webroot.
+
+certbot certonly --webroot -w <dossier du serveur static> -d <domaine> 
+
+Pour obtenir un certificat en arretant apache pour liberer le port 80 afin que certbot puisse demarer un serveur HTTP perso:
+Attention: un fichier .conf est créé dans /etc/letsencrypt/renewal pour les renouvellements futurs 
+=> ecrasement de l'ancien fichier si présent avec la nouvelle methode --standalone.
+
+certbot certonly --standalone -d <domaine> 
+
+Il faut redemarer Apache suite au changement de certificats:
+dans /etc/letsencrypt/renewal-hook/post mettre un script bash apacheReStart.sh contenant:
+
+echo "Restart Apache => /etc/letsencrypt/renewal-hooks/post/apacheReStart.sh"
+systemctl restart apache2
+
+Option --dry-run: permet de tester sans generer de certificats
+certbot certonly --dry-run --webroot -w <dossier du serveur static> -d <domaine> 
+
+Renouveler tous les certificats obsolètes: certbot renew (eventuellement avec option --dry-run)
+-> il y a une tache crontab qui effectue bi-journalièrement cette verification)
+
+Renouveler un certificat en particulier: certbot renew --cert-name domain1.com (eventuellement avec option --dry-run)
+
+Acces à certbot par menu: certbot
+
+--------------------------------------------------------------------------------------------------------------------------------------
+Pour creer les certificats SSL afin de permettre une authentification par certificat pour un site:
+
+ca.crt 		-> Certificat Autorité à mettre sur /etc/apache/ssl 
+		   puis dans "apache".conf => SSLCACertificateFile /etc/apache2/ssl/ca.crt + SSLVerifyClient require 
+
+client.p12 	-> Certificat Client à importer dans chrome
+
+Pour creer ces fichiers:
+1) Creer une clé ca.key 				=> openssl genrsa -aes256 -out ca.key 2048
+2) Creer un Certificat Autorité 			=> openssl req -new -x509 -days 3650 -key ca.key -out ca.crt
+3) Creer une clé client.key 				=> openssl genrsa -aes256 -out client.key 2048
+4) Creer une requete de certification client.csr 	=> openssl req -new -key client.key -out client.csr
+5) Creer un Certificat Client X.509 			=> openssl x509 -req -in client.csr -out client.crt -sha1 -CA ca.crt -CAkey ca.key -CAcreateserial -days 3650
+6) Convertir le Certificat X.509 en P12 		=> openssl pkcs12 -export -in client.crt -inkey client.key -out client.p12 -name "client certificate"  
+
+--------------------------------------------------------------------------------------------------------------------------------------
+Pour creer les paires de clés privée/publique afin de permettre une authentification automatique ssh pour un serveur:
+
+ssh-keygen  -> permet de créer la paire de clés
+
+	id_rsa 		est la clé privée
+	id_rsa.pub 	est la clé publique
+
+ces fichiers se retrouvent dans /home/user/.ssh et permettent une authentification automatique pour les accces ssh distant grace à la commande:
+
+ssh-copy-id user@<doamin> --> ceci copie la clé publique de user (id_rsa.pub) dans le .ssh/authorized_keys du serveur

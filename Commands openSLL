@@ -1,0 +1,14 @@
+Pour faire une authentification par certificat pour un site:
+
+ca.crt 		-> Certificat Autorité à mettre sur /etc/apache/ssl et dans "apache".conf => SSLCACertificateFile /etc/apache2/ssl/ca.crt + SSLVerifyClient require
+client.p12 	-> Certificat Client à importer dans chrome
+
+Pour creer ces fichiers:
+
+1) Creer une clé DE CRYPTAGE ca.key 			=> openssl genrsa -aes256 -out ca.key 2048
+2) Creer un Certificat Autorité 	=> openssl req -new -x509 -days 3650 -key ca.key -out ca.crt
+
+3) Creer une clé client.key 						=> openssl genrsa -aes256 -out client.key 2048
+4) Creer une requete de certification client.csr 	=> openssl req -new -key client.key -out client.csr
+5) Creer un Certificat Client X.509 				=> openssl x509 -req -in client.csr -out client.crt -sha1 -CA ca.crt -CAkey ca.key -CAcreateserial -days 3650
+6) Convertir le Certificat X.509 en P12 			=> openssl pkcs12 -export -in client.crt -inkey client.key -out client.p12 -name "client certificate"  
