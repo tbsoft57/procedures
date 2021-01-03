@@ -7,6 +7,7 @@ En arretant apache pour liberer le port 80 afin que certbot puisse demarer un se
 certbot certonly --standalone -d <domaine> 
 
 certbot renew -> renouvelle tous les certificats
+certbot renew --force-renewal -> renouvelle tous les certificats meme ceux non périmés
 
 certbot certificates -> Liste tous les certificats
 
