@@ -9,3 +9,5 @@ certbot certonly --standalone -d <domaine>
 certbot renew -> renouvelle tous les certificats
 
 certbot certificates -> Liste tous les certificats
+
+ATTENTION: --> Erreurs certbot si /var/log est plein
