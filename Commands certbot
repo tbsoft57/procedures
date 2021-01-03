@@ -5,3 +5,5 @@ certbot certonly --webroot -w <dossier du serveur static> -d <domaine>
 
 En arretant apache pour liberer le port 80 afin que certbot puisse demarer un serveur HTTP perso
 certbot certonly --standalone -d <domaine> 
+
+certbot renew -> renouvelle tous les certificats
