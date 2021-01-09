@@ -1,3 +1,18 @@
+Example de fichier service:
+----------
+[Unit]
+ Description=alexa service
+ After=multi-user.target
+
+ [Service]
+ Type=idle
+ ExecStart=/usr/bin/node /root/alexa/index.js 
+
+ [Install]
+ WantedBy=multi-user.target
+----------
+Copier le fichier <NAME>.service --> /lib/systemd/system PUIS sudo systemctl enable <NAME> ET sudo service <NAME> start
+
 sudo systemctl enable <name>
 sudo systemctl disable <name>
 systemctl --type=service --state=running  # List running services
