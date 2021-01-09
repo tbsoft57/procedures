@@ -15,7 +15,9 @@ Copier le fichier <NAME>.service --> /lib/systemd/system PUIS sudo systemctl ena
 
 sudo systemctl enable <name>
 sudo systemctl disable <name>
+
 systemctl --type=service --state=running  # List running services
+ss -lntup                                 # List ports use of services
 
 sudo service <name> start restart stop
 
