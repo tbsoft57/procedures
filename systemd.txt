@@ -1,4 +1,7 @@
 sudo systemctl enable <name>
 sudo systemctl disable <name>
+systemctl --type=service --state=running  # List running services
+
 sudo service <name> start restart stop
+
 sudo journalctl -u <name>
