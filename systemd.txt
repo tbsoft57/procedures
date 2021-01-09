@@ -1,3 +1,4 @@
 sudo systemctl enable <name>
+sudo systemctl disable <name>
 sudo service <name> start restart stop
 sudo journalctl -u <name>
