@@ -1,0 +1,2 @@
+ss -lntup                                                             # List ports use of services
+systemctl --type=service --state=running                              # List running services
