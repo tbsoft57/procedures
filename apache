@@ -1,1 +1,3 @@
 ATTENTION: --> Erreurs apache si /var/log est plein
+
+apache2ctl -S -> affiche liste des virtualHosts
