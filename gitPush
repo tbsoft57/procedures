@@ -1,0 +1,7 @@
+racourci dispo en commande en ligne sur le PC linux
+
+Effectue un:
+
+git add --all
+git commit -m "MAJ"
+git push 
