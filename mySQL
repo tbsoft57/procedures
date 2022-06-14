@@ -1,0 +1,11 @@
+mysql --password photowatt
+
+show databases;
+
+show tables;
+
+show columns from histowatt;
+
+select production from histowatt where time > "2022/6/14 0:30";
+
+update histowatt set production = 0, injection = 0, soutirage = consommation where time > "2022/6/14 0:20" and time < "2022/6/14 8:05";
