@@ -21,4 +21,4 @@ ss -lntup                                 # List ports use of services
 
 sudo service <name> start restart stop
 
-sudo journalctl -u <name>
+sudo journalctl -fu <name>
