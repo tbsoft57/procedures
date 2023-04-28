@@ -1,2 +1,5 @@
 ss -lntup                                                             # List ports use of services
+
 systemctl --type=service --state=running                              # List running services
+
+fuser -n tcp -k 9000                                                  # Kill processus sur port 9000
