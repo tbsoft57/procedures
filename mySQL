@@ -2,6 +2,8 @@ mysql --password photowatt
 
 show databases;
 
+use database;
+
 show tables;
 
 show columns from histowatt;
