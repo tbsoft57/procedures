@@ -1,6 +1,0 @@
-sudo /root/mochad-0.1.16/mochad &   --> Relancer mochad manuellement ou mettre dans /etc/rc.local
-
-nc localhost 1099 puis pl E6 on /  pl E6 off
-
-echo pl E6 on | nc localhost 1099 -w 0
-echo pl E6 off | nc localhost 1099 -w 0
